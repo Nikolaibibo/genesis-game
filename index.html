@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Genesis</title>
+  <meta name="description" content="Genesis is a neon jump-and-run for the browser. Every run builds a new level. Built from a one-page spec in one pass." />
+  <style>
+    :root {
+      --bg: #05060f;
+      --panel: rgba(18, 22, 52, 0.6);
+      --line: rgba(34, 230, 255, 0.25);
+      --cyan: #22e6ff;
+      --pink: #ff3d9a;
+      --lime: #a6ff3d;
+      --text: #e6f7ff;
+      --muted: #8fa0c4;
+      --mono: "Consolas", "SF Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(ellipse at 50% 0%, #121a4a 0%, var(--bg) 60%) fixed, var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      line-height: 1.55;
+    }
+
+    a { color: inherit; }
+
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+
+    /* Hero */
+    header { padding: 72px 0 40px; text-align: center; }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 14px 0 12px;
+      font-size: clamp(48px, 11vw, 112px);
+      letter-spacing: 0.25em;
+      padding-left: 0.25em; /* balance trailing letter-spacing */
+      color: var(--cyan);
+      text-shadow: 0 0 22px var(--cyan), 0 0 60px rgba(34, 230, 255, 0.45);
+    }
+
+    .lead { max-width: 600px; margin: 0 auto; font-size: 19px; color: var(--muted); }
+
+    .cta { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 32px; }
+
+    .btn {
+      display: inline-block;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+    .btn:focus-visible { outline: 2px solid var(--lime); outline-offset: 3px; }
+
+    .btn-primary {
+      background: var(--cyan);
+      color: #041018;
+      box-shadow: 0 0 24px rgba(34, 230, 255, 0.55);
+    }
+
+    .btn-primary:hover { box-shadow: 0 0 36px rgba(34, 230, 255, 0.8); }
+
+    .btn-ghost {
+      border: 1px solid var(--lime);
+      color: var(--lime);
+      box-shadow: 0 0 14px rgba(166, 255, 61, 0.25);
+    }
+
+    .daily { margin-top: 12px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+    /* Attract-mode canvas */
+    .stage {
+      margin: 44px auto 0;
+      max-width: 880px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(34, 230, 255, 0.18);
+    }
+
+    .stage canvas { display: block; width: 100%; height: auto; }
+
+    /* Sections */
+    section { padding: 56px 0 8px; }
+
+    h2 {
+      font-size: 14px;
+      font-family: var(--mono);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--pink);
+      margin-bottom: 20px;
+    }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 22px;
+    }
+
+    .card h3 { font-size: 18px; margin-bottom: 8px; }
+    .card p { color: var(--muted); font-size: 15px; }
+
+    .keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .key { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+
+    kbd {
+      display: inline-block;
+      min-width: 34px;
+      padding: 5px 9px;
+      border: 1px solid var(--cyan);
+      border-radius: 5px;
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 14px;
+      text-align: center;
+      box-shadow: 0 0 8px rgba(34, 230, 255, 0.3);
+    }
+
+    .seed-form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+
+    .seed-form input {
+      flex: 1 1 180px;
+      max-width: 240px;
+      padding: 12px 14px;
+      background: #0a0d24;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 16px;
+    }
+
+    .seed-form input:focus { outline: 2px solid var(--cyan); outline-offset: 1px; }
+
+    .seed-form button {
+      padding: 12px 20px;
+      border: 1px solid var(--cyan);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--cyan);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .steps { counter-reset: step; display: grid; gap: 14px; }
+
+    .steps li {
+      list-style: none;
+      counter-increment: step;
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 14px;
+      align-items: start;
+      color: var(--muted);
+    }
+
+    .steps li::before {
+      content: counter(step, decimal-leading-zero);
+      font-family: var(--mono);
+      color: var(--lime);
+      font-size: 18px;
+      padding-top: 1px;
+    }
+
+    .steps strong { color: var(--text); }
+
+    footer {
+      margin-top: 64px;
+      padding: 28px 0 40px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .mobile-note { display: none; }
+
+    @media (hover: none) and (pointer: coarse) {
+      .mobile-note {
+        display: block;
+        margin-top: 14px;
+        font-size: 14px;
+        color: var(--pink);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">A neon jump-and-run</p>
+      <h1>GENESIS</h1>
+      <p class="lead">Run, jump and duck through a level that has never existed before. Reach the beacon before the three-minute clock runs out.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="genesis-game/">Play now</a>
+        <a class="btn btn-ghost" id="daily-link" href="genesis-game/">Level of the day</a>
+      </div>
+      <p class="daily" id="daily-label"></p>
+      <p class="mobile-note">Genesis needs a keyboard, so play it on a desktop browser.</p>
+
+      <div class="stage" aria-hidden="true">
+        <canvas id="attract" width="880" height="220"></canvas>
+      </div>
+    </header>
+
+    <section>
+      <h2>Why it's fun</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Every run is a new level</h3>
+          <p>Pits, spikes, laser bands, low tunnels and patrolling bugs are chained at random. Each level gets harder towards the end.</p>
+        </div>
+        <div class="card">
+          <h3>Share a level by its number</h3>
+          <p>Every level has a seed. Send someone the link and they get exactly your level, then see who is faster.</p>
+        </div>
+        <div class="card">
+          <h3>Always finishable</h3>
+          <p>A test bot plays 2,000 generated levels after every change. Every one of them can be beaten.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Controls</h2>
+      <div class="keys">
+        <div class="key"><kbd>A</kbd><kbd>D</kbd> run</div>
+        <div class="key"><kbd>W</kbd> jump</div>
+        <div class="key"><kbd>S</kbd> duck</div>
+        <div class="key"><kbd>P</kbd> pause</div>
+        <div class="key"><kbd>R</kbd> retry level</div>
+        <div class="key"><kbd>Enter</kbd> new level</div>
+      </div>
+
+      <form class="seed-form" id="seed-form">
+        <input id="seed-input" type="number" min="1" max="999999" inputmode="numeric" placeholder="Level number" aria-label="Level number" required />
+        <button type="submit">Play this level</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>How it was built</h2>
+      <ol class="steps">
+        <li><span><strong>A one-page spec.</strong> Hero, controls, physics, obstacles, a 180-second timer and a neon look. No engine and no image files.</span></li>
+        <li><span><strong>Built by an AI coding agent in one pass.</strong> Wherever the spec left a question open, the agent made a sensible assumption and wrote it down.</span></li>
+        <li><span><strong>Tested by a bot, not by hand.</strong> A headless bot plays the real game logic and found the unfair spots before anyone played.</span></li>
+        <li><span><strong>Plain web tech.</strong> HTML5 canvas, vanilla JavaScript and CSS. Three files that run in any desktop browser.</span></li>
+      </ol>
+    </section>
+
+    <footer>
+      Genesis is a live demo of an AI-assisted coding workflow.
+    </footer>
+  </div>
+
+  <script>
+    'use strict';
+
+    // Level of the day: the same seed for everyone on the same date (YYMMDD).
+    (() => {
+      const d = new Date();
+      const seed = (d.getFullYear() % 100) * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      document.getElementById('daily-link').href = `genesis-game/?seed=${seed}`;
+      document.getElementById('daily-label').textContent = `Today's level: #${seed}`;
+    })();
+
+    document.getElementById('seed-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const seed = parseInt(document.getElementById('seed-input').value, 10);
+      if (seed > 0) window.location.href = `genesis-game/?seed=${seed}`;
+    });
+
+    // Attract mode: the hero runs and hops over spikes on an endless strip.
+    (() => {
+      const canvas = document.getElementById('attract');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height, G = 170;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const spikes = [260, 520, 700, 980, 1240];
+      const SPAN = 1400, SPEED = 220, HERO = 36;
+      let t = 0, last = performance.now();
+
+      function heroY(worldX) {
+        // Jump arc centred on each spike, about 150 px wide.
+        for (const s of spikes) {
+          for (const k of [-1, 0, 1]) {
+            const dx = worldX - (s + k * SPAN);
+            if (Math.abs(dx) < 80) return -95 * (1 - (dx / 80) ** 2);
+          }
+        }
+        return 0;
+      }
+
+      function draw(now) {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        if (!reduceMotion) t += dt;
+        const cam = t * SPEED;
+        const heroX = 180;
+
+        ctx.fillStyle = '#070a1f';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.strokeStyle = 'rgba(80, 110, 255, 0.14)';
+        ctx.lineWidth = 1;
+        const off = -(cam * 0.5) % 40;
+        for (let x = off; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, G); ctx.stroke(); }
+        for (let y = 10; y < G; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+        ctx.fillStyle = 'rgba(255, 61, 154, 0.07)';
+        ctx.fillRect(0, G - 80, W, 80);
+
+        ctx.fillStyle = '#120f33';
+        ctx.fillRect(0, G, W, H - G);
+        ctx.shadowColor = '#7b5cff';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#7b5cff';
+        ctx.fillRect(0, G, W, 2);
+
+        ctx.shadowColor = '#ff3d9a';
+        ctx.fillStyle = '#ff3d9a';
+        for (const s of spikes) {
+          for (const k of [0, 1]) {
+            const sx = s + k * SPAN - (cam % SPAN) + heroX;
+            if (sx < -60 || sx > W + 60) continue;
+            for (let i = 0; i < 3; i++) {
+              ctx.beginPath();
+              ctx.moveTo(sx - 24 + i * 16, G);
+              ctx.lineTo(sx - 16 + i * 16, G - 18);
+              ctx.lineTo(sx - 8 + i * 16, G);
+              ctx.fill();
+            }
+          }
+        }
+
+        const y = G - HERO + heroY(cam % SPAN);
+        ctx.shadowColor = '#22e6ff';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#22e6ff';
+        ctx.beginPath();
+        ctx.roundRect(heroX - HERO / 2, y, HERO, HERO, 8);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#041018';
+        ctx.fillRect(heroX + 2, y + 11, 5, 8);
+        ctx.fillRect(heroX + 11, y + 11, 5, 8);
+
+        requestAnimationFrame(draw);
+      }
+
+      requestAnimationFrame(draw);
+    })();
+  </script>
+</body>
+</html>

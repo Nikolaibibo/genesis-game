@@ -6,14 +6,15 @@ The game was built in one pass from [`docs/specification.md`](docs/specification
 
 ## Play
 
-Open `genesis-game/index.html` in a desktop browser.
+Open `index.html` (the landing page) or `genesis-game/index.html` (the game) in a desktop browser.
+
+The landing page has a "Level of the day": the date as a seed (YYMMDD), so everyone gets the same level on the same day.
 
 You can also serve the folder locally:
 
 ```sh
-cd genesis-game
 python -m http.server 8765
-# open http://127.0.0.1:8765/
+# open http://127.0.0.1:8765/ (landing page) or /genesis-game/ (game)
 ```
 
 | Key | Action |
@@ -32,6 +33,7 @@ Every level has a number (its seed), shown in the HUD and kept in the URL. Open 
 ## Project layout
 
 ```
+index.html       landing page (attract-mode animation, level of the day, play by level number)
 genesis-game/
   index.html     canvas, HUD and the start / pause / end overlays
   style.css      neon theme for the overlays
