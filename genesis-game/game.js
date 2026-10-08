@@ -32,56 +32,120 @@ const COLORS = {
 };
 
 // ---------------------------------------------------------------------------
-// Level definition
+// Level generation
 // ---------------------------------------------------------------------------
-// Ground segments [startX, endX]; gaps between them are pits.
-const GROUND = [
-  [0, 900], [1040, 1800], [1950, 2700], [2850, 3800],
-  [3950, 5200], [5320, 6600],
-];
+// A level is a random chain of chunks (one obstacle each), separated by flat
+// runways. Every chunk is fair on its own; difficulty ramps from 0 to 1 along
+// the level. The same seed always builds the same level.
+const LEVEL_LENGTH = 6200;     // x where the last chunk may start
+const START_RUNWAY = 500;
+const GOAL_RUNWAY = 300;
 
-function buildLevel() {
-  const G = GROUND_Y;
-  const solids = [];
-  const hazards = [];
-  const bugs = [];
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  for (const [x0, x1] of GROUND) {
-    solids.push({ x: x0, y: G, w: x1 - x0, h: HEIGHT - G + 200, kind: 'ground' });
+const lerp = (a, b, d) => a + (b - a) * d;
+const snap = (v) => Math.round(v / 10) * 10;
+
+// Each chunk adds its elements at x and returns the width it occupies.
+// d = difficulty (0..1), r = range(min, max) from the level's RNG.
+const CHUNKS = {
+  pit(lv, x, d, r) {
+    const w = snap(r(lerp(90, 120, d), lerp(110, 150, d)));
+    lv.pits.push([x, x + w]);
+    return w;
+  },
+  spikes(lv, x, d, r) {
+    const w = snap(r(40, lerp(60, 120, d)));
+    lv.hazards.push({ x, y: GROUND_Y - 20, w, h: 20, kind: 'spikes' });
+    return w;
+  },
+  doubleSpikes(lv, x, d, r) {
+    const a = snap(r(30, 40));
+    const gap = snap(r(40, 50));
+    const b = snap(r(30, 40));
+    lv.hazards.push({ x, y: GROUND_Y - 20, w: a, h: 20, kind: 'spikes' });
+    lv.hazards.push({ x: x + a + gap, y: GROUND_Y - 20, w: b, h: 20, kind: 'spikes' });
+    return a + gap + b;
+  },
+  block(lv, x, d, r) {
+    const h = snap(r(40, lerp(60, 90, d)));
+    const w = snap(r(40, 160));
+    lv.solids.push({ x, y: GROUND_Y - h, w, h, kind: 'block' });
+    return w;
+  },
+  tunnel(lv, x, d, r) {
+    const w = snap(r(160, lerp(200, 320, d)));
+    lv.solids.push({ x, y: GROUND_Y - 260, w, h: 230, kind: 'ceiling' }); // 30 px gap: crouch only
+    return w;
+  },
+  laser(lv, x, d, r) {
+    const w = snap(r(60, lerp(80, 120, d)));
+    lv.hazards.push({ x, y: GROUND_Y - 62, w, h: 30, kind: 'laser' }); // crouch under or jump over
+    return w;
+  },
+  bug(lv, x, d, r) {
+    const range = snap(r(140, 280));
+    const speed = Math.round(r(lerp(70, 100, d), lerp(90, 130, d)));
+    lv.bugs.push(makeBug(x, x + range, speed));
+    return range;
+  },
+  stairs(lv, x, d, r) {
+    const steps = r(0, 1) < 0.5 ? 2 : 3;
+    for (let i = 0; i < steps; i++) {
+      lv.solids.push({ x: x + i * 200, y: GROUND_Y - 90 - i * 80, w: 120, h: 20, kind: 'platform' });
+    }
+    return (steps - 1) * 200 + 120;
+  },
+};
+
+// Relative weights; the first chunks are drawn from the easy set only.
+const CHUNK_WEIGHTS = { pit: 4, spikes: 3, doubleSpikes: 2, block: 2, tunnel: 3, laser: 3, bug: 3, stairs: 1 };
+const EASY_CHUNKS = ['block', 'spikes', 'pit', 'stairs'];
+
+function randomSeed() {
+  return 1 + Math.floor(Math.random() * 999999);
+}
+
+function buildLevel(seed) {
+  const rand = mulberry32(seed);
+  const r = (min, max) => min + rand() * (max - min);
+  const lv = { seed, solids: [], hazards: [], bugs: [], pits: [] };
+
+  let x = START_RUNWAY;
+  let prev = null;
+  let count = 0;
+  while (x < LEVEL_LENGTH) {
+    const d = Math.min(1, (x - START_RUNWAY) / (LEVEL_LENGTH - START_RUNWAY));
+    const pool = (count < 2 ? EASY_CHUNKS : Object.keys(CHUNK_WEIGHTS)).filter((k) => k !== prev);
+    let pick = rand() * pool.reduce((sum, k) => sum + CHUNK_WEIGHTS[k], 0);
+    const kind = pool.find((k) => (pick -= CHUNK_WEIGHTS[k]) < 0) || pool[0];
+    x += CHUNKS[kind](lv, x, d, r);
+    x += snap(r(lerp(300, 190, d), lerp(420, 260, d))); // runway to the next chunk
+    prev = kind;
+    count++;
   }
 
-  // Section 1: warm-up
-  solids.push({ x: 480, y: G - 60, w: 60, h: 60, kind: 'block' });
-  solids.push({ x: 660, y: G - 120, w: 140, h: 20, kind: 'platform' });
+  const goalX = x + GOAL_RUNWAY - 200;
+  lv.goal = { x: goalX, y: GROUND_Y - 220, w: 40, h: 220 };
+  lv.endX = goalX + GOAL_RUNWAY;
 
-  // Section 2: spikes + first crouch tunnel
-  hazards.push({ x: 1200, y: G - 20, w: 60, h: 20, kind: 'spikes' });
-  solids.push({ x: 1400, y: G - 260, w: 200, h: 230, kind: 'ceiling' }); // 30 px gap: crouch only
-
-  // Section 3: stairs + patrolling bug + wall
-  solids.push({ x: 2050, y: G - 90, w: 120, h: 20, kind: 'platform' });
-  solids.push({ x: 2250, y: G - 170, w: 120, h: 20, kind: 'platform' });
-  solids.push({ x: 2450, y: G - 250, w: 140, h: 20, kind: 'platform' });
-  bugs.push(makeBug(2200, 2440, 90));   // stays clear of the low first step, so it can be jumped
-
-  // Section 4: laser band (crouch under or jump over) + long tunnel + bug
-  hazards.push({ x: 3000, y: G - 62, w: 120, h: 30, kind: 'laser' });
-  solids.push({ x: 3250, y: G - 260, w: 260, h: 230, kind: 'ceiling' });
-  bugs.push(makeBug(3560, 3680, 110));   // leaves landing room before the pit
-
-  // Section 5: spike field (no low platform above the take-off spot), tunnel, laser, wall
-  hazards.push({ x: 4240, y: G - 20, w: 120, h: 20, kind: 'spikes' });
-  solids.push({ x: 4420, y: G - 200, w: 120, h: 20, kind: 'platform' });
-  solids.push({ x: 4700, y: G - 260, w: 180, h: 230, kind: 'ceiling' });
-  hazards.push({ x: 4960, y: G - 62, w: 60, h: 30, kind: 'laser' });
-
-  // Section 6: final run
-  bugs.push(makeBug(5400, 5700, 130));
-  solids.push({ x: 5800, y: G - 140, w: 160, h: 20, kind: 'platform' });
-  hazards.push({ x: 6040, y: G - 20, w: 100, h: 20, kind: 'spikes' });
-
-  const goal = { x: 6300, y: G - 220, w: 40, h: 220 };
-  return { solids, hazards, bugs, goal, endX: 6600 };
+  // Ground = whole level minus the pits
+  let g0 = 0;
+  for (const [p0, p1] of lv.pits) {
+    lv.solids.push({ x: g0, y: GROUND_Y, w: p0 - g0, h: HEIGHT - GROUND_Y + 200, kind: 'ground' });
+    g0 = p1;
+  }
+  lv.solids.push({ x: g0, y: GROUND_Y, w: lv.endX - g0, h: HEIGHT - GROUND_Y + 200, kind: 'ground' });
+  return lv;
 }
 
 function makeBug(minX, maxX, speed) {
@@ -100,12 +164,25 @@ function formatTime(t) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function loadBest() {
-  try { return parseFloat(localStorage.getItem('genesis-best')) || null; } catch { return null; }
+// Best times are kept per level seed, since every seed is a different level.
+function loadBest(seed) {
+  try { return parseFloat(localStorage.getItem(`genesis-best-${seed}`)) || null; } catch { return null; }
 }
 
-function saveBest(t) {
-  try { localStorage.setItem('genesis-best', String(t)); } catch { /* storage unavailable */ }
+function saveBest(seed, t) {
+  try { localStorage.setItem(`genesis-best-${seed}`, String(t)); } catch { /* storage unavailable */ }
+}
+
+// ?seed=123 in the URL replays that level.
+function seedFromUrl() {
+  try {
+    const v = parseInt(new URLSearchParams(window.location.search).get('seed'), 10);
+    return v > 0 ? v : null;
+  } catch { return null; }
+}
+
+function writeSeedToUrl(seed) {
+  try { history.replaceState(null, '', `?seed=${seed}`); } catch { /* file:// or no history */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -287,18 +364,19 @@ class Game {
       endReason: document.getElementById('end-reason'),
       endStats: document.getElementById('end-stats'),
       bestStart: document.getElementById('best-start'),
+      seed: document.getElementById('hud-seed'),
     };
-    this.best = loadBest();
-    this.showBest();
     this.state = 'start';     // start | playing | paused | dying | over
-    this.reset();
+    this.reset(seedFromUrl() || randomSeed());
+    this.showBest();
     this.last = performance.now();
     this.acc = 0;
     requestAnimationFrame((t) => this.frame(t));
   }
 
-  reset() {
-    this.level = buildLevel();
+  reset(seed) {
+    this.level = buildLevel(seed);
+    this.best = loadBest(seed);
     this.player = new Player(80, GROUND_Y - HERO.h);
     this.camX = 0;
     this.timeLeft = TIME_LIMIT;
@@ -308,11 +386,15 @@ class Game {
   }
 
   showBest() {
-    this.ui.bestStart.textContent = this.best ? `Best time: ${this.best.toFixed(2)} s` : '';
+    this.ui.bestStart.textContent = this.best ? `Best time on level #${this.level.seed}: ${this.best.toFixed(2)} s` : '';
   }
 
-  startRun() {
-    this.reset();
+  // The first run plays the level built at load (seed from the URL or random).
+  // After that, newLevel decides between a fresh level and a retry of the current one.
+  startRun(newLevel) {
+    this.reset(newLevel ? randomSeed() : this.level.seed);
+    writeSeedToUrl(this.level.seed);
+    this.ui.seed.textContent = `#${this.level.seed}`;
     this.state = 'playing';
     this.ui.start.classList.add('hidden');
     this.ui.end.classList.add('hidden');
@@ -327,7 +409,7 @@ class Game {
     this.ui.endReason.textContent = reason;
     if (win) {
       const newBest = !this.best || this.elapsed < this.best;
-      if (newBest) { this.best = this.elapsed; saveBest(this.elapsed); this.showBest(); }
+      if (newBest) { this.best = this.elapsed; saveBest(this.level.seed, this.elapsed); this.showBest(); }
       this.ui.endStats.textContent =
         `Time: ${this.elapsed.toFixed(2)} s · left on clock: ${formatTime(this.timeLeft)}` + (newBest ? ' · NEW BEST' : '');
     } else {
@@ -376,8 +458,9 @@ class Game {
 
   handleMeta() {
     const i = this.input;
-    if (this.state === 'start' && i.consume('confirm')) this.startRun();
-    else if (this.state === 'over' && (i.consume('confirm') || i.consume('restart'))) this.startRun();
+    if (this.state === 'start' && i.consume('confirm')) this.startRun(false);
+    else if (this.state === 'over' && i.consume('confirm')) this.startRun(true);
+    else if (this.state === 'over' && i.consume('restart')) this.startRun(false);
     else if (this.state === 'playing' && i.consume('pause')) {
       this.state = 'paused';
       this.ui.pause.classList.remove('hidden');
@@ -385,7 +468,7 @@ class Game {
       this.state = 'playing';
       this.ui.pause.classList.add('hidden');
       i.clearPressed();
-    } else if (this.state === 'playing' && i.consume('restart')) this.startRun();
+    } else if (this.state === 'playing' && i.consume('restart')) this.startRun(false);
     i.consume('confirm');
   }
 

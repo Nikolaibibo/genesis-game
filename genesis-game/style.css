@@ -70,6 +70,12 @@ canvas {
   text-shadow: 0 0 10px var(--neon-cyan);
 }
 
+.hud-seed {
+  font-family: "Consolas", "SF Mono", monospace;
+  font-size: 16px;
+  color: var(--text);
+}
+
 .hud-value.warn {
   color: var(--neon-pink);
   text-shadow: 0 0 10px var(--neon-pink);

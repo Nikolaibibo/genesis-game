@@ -16,6 +16,10 @@
         <span id="hud-timer" class="hud-value">3:00</span>
       </div>
       <div class="hud-item">
+        <span class="hud-label">Level</span>
+        <span id="hud-seed" class="hud-seed"></span>
+      </div>
+      <div class="hud-item">
         <span class="hud-label">Progress</span>
         <div class="progress"><div id="hud-progress" class="progress-fill"></div></div>
       </div>
@@ -23,7 +27,7 @@
 
     <div id="screen-start" class="overlay">
       <h1>GENESIS</h1>
-      <p class="tagline">Reach the beacon before the clock runs out.</p>
+      <p class="tagline">Reach the beacon before the clock runs out. Every run is a new level.</p>
       <div class="keys">
         <div><kbd>A</kbd><kbd>D</kbd> move</div>
         <div><kbd>W</kbd> jump</div>
@@ -38,7 +42,7 @@
       <h1 id="end-title">GAME OVER</h1>
       <p id="end-reason" class="tagline"></p>
       <p id="end-stats" class="stats"></p>
-      <p class="prompt">Press <kbd>R</kbd> or <kbd>Enter</kbd> to play again</p>
+      <p class="prompt"><kbd>Enter</kbd> new level &nbsp;·&nbsp; <kbd>R</kbd> retry this one</p>
     </div>
 
     <div id="screen-pause" class="overlay hidden">
