@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Genesis</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="960" height="540"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-item">
+        <span class="hud-label">Time</span>
+        <span id="hud-timer" class="hud-value">3:00</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Progress</span>
+        <div class="progress"><div id="hud-progress" class="progress-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="screen-start" class="overlay">
+      <h1>GENESIS</h1>
+      <p class="tagline">Reach the beacon before the clock runs out.</p>
+      <div class="keys">
+        <div><kbd>A</kbd><kbd>D</kbd> move</div>
+        <div><kbd>W</kbd> jump</div>
+        <div><kbd>S</kbd> crouch</div>
+        <div><kbd>P</kbd> pause</div>
+      </div>
+      <p class="prompt">Press <kbd>Enter</kbd> or <kbd>Space</kbd> to start</p>
+      <p id="best-start" class="best"></p>
+    </div>
+
+    <div id="screen-end" class="overlay hidden">
+      <h1 id="end-title">GAME OVER</h1>
+      <p id="end-reason" class="tagline"></p>
+      <p id="end-stats" class="stats"></p>
+      <p class="prompt">Press <kbd>R</kbd> or <kbd>Enter</kbd> to play again</p>
+    </div>
+
+    <div id="screen-pause" class="overlay hidden">
+      <h1>PAUSED</h1>
+      <p class="prompt">Press <kbd>P</kbd> to continue</p>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

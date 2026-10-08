@@ -1,0 +1,151 @@
+:root {
+  --bg: #05060f;
+  --neon-cyan: #22e6ff;
+  --neon-pink: #ff3d9a;
+  --neon-lime: #a6ff3d;
+  --text: #e6f7ff;
+  --muted: #7d8fb3;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: radial-gradient(ellipse at center, #0c1030 0%, var(--bg) 70%);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#stage {
+  position: relative;
+  width: min(96vw, calc(96vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  box-shadow: 0 0 40px rgba(34, 230, 255, 0.25), 0 0 2px var(--neon-cyan);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+}
+
+.hidden { display: none !important; }
+
+/* HUD */
+#hud {
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  right: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.hud-item { display: flex; align-items: center; gap: 10px; }
+
+.hud-label {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hud-value {
+  font-family: "Consolas", "SF Mono", monospace;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.hud-value.warn {
+  color: var(--neon-pink);
+  text-shadow: 0 0 10px var(--neon-pink);
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse { from { opacity: 1; } to { opacity: 0.55; } }
+
+.progress {
+  width: 180px;
+  height: 8px;
+  border: 1px solid rgba(166, 255, 61, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--neon-lime);
+  box-shadow: 0 0 8px var(--neon-lime);
+}
+
+/* Overlays */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(5, 6, 15, 0.78);
+  backdrop-filter: blur(3px);
+  text-align: center;
+}
+
+.overlay h1 {
+  font-size: clamp(36px, 7vw, 72px);
+  letter-spacing: 0.3em;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 18px var(--neon-cyan), 0 0 40px rgba(34, 230, 255, 0.5);
+}
+
+#end-title.win {
+  color: var(--neon-lime);
+  text-shadow: 0 0 18px var(--neon-lime), 0 0 40px rgba(166, 255, 61, 0.5);
+}
+
+#end-title.lose {
+  color: var(--neon-pink);
+  text-shadow: 0 0 18px var(--neon-pink), 0 0 40px rgba(255, 61, 154, 0.5);
+}
+
+.tagline { color: var(--muted); font-size: 18px; }
+.stats { font-size: 20px; font-family: "Consolas", "SF Mono", monospace; }
+.best { color: var(--neon-lime); font-size: 14px; min-height: 1em; }
+
+.keys {
+  display: flex;
+  gap: 24px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.prompt { font-size: 16px; animation: pulse 0.9s ease-in-out infinite alternate; }
+
+kbd {
+  display: inline-block;
+  min-width: 26px;
+  padding: 3px 7px;
+  margin: 0 2px;
+  border: 1px solid var(--neon-cyan);
+  border-radius: 4px;
+  color: var(--neon-cyan);
+  font-family: "Consolas", "SF Mono", monospace;
+  font-size: 13px;
+  box-shadow: 0 0 6px rgba(34, 230, 255, 0.35);
+}
